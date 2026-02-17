@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saber Virtual Invoice Pro - Generador de Facturas</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            height: 100vh;
+            gap: 0;
+        }
+
+        /* Panel de Control - Izquierda */
+        .control-panel {
+            background: #0f1419;
+            padding: 30px;
+            overflow-y: auto;
+            border-right: 1px solid #2a2a3e;
+        }
+
+        .app-header {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #c5a059;
+        }
+
+        .app-header h1 {
+            color: #c5a059;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .app-header p {
+            color: #888;
+            font-size: 13px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #c5a059;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            background: #1a1f2e;
+            border: 1px solid #2a2a3e;
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #c5a059;
+            box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: #1a1f2e;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1px solid #2a2a3e;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-group:hover {
+            border-color: #c5a059;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #c5a059;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            color: #e0e0e0;
+            cursor: pointer;
+            font-size: 14px;
+            text-transform: none;
+            letter-spacing: normal;
+        }
+
+        .file-upload-wrapper {
+            position: relative;
+        }
+
+        .file-upload-btn {
+            display: inline-block;
+            padding: 12px 20px;
+            background: #2a2a3e;
+            border: 2px dashed #c5a059;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .file-upload-btn:hover {
+            background: #1a1f2e;
+            border-color: #e0c589;
+        }
+
+        .file-upload-btn input[type="file"] {
+            display: none;
+        }
+
+        .logo-preview {
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .logo-preview img {
+            max-width: 120px;
+            max-height: 120px;
+            border-radius: 8px;
+            border: 2px solid #2a2a3e;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #c5a059 0%, #e0c589 100%);
+            color: #0f1419;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(197, 160, 89, 0.3);
+        }
+
+        .btn-secondary {
+            background: #2a2a3e;
+            color: #e0e0e0;
+            border: 1px solid #c5a059;
+        }
+
+        .btn-secondary:hover {
+            background: #1a1f2e;
+        }
+
+        /* Panel de Preview - Derecha */
+        .preview-panel {
+            background: #e0e0e0;
+            padding: 40px;
+            overflow-y: auto;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        #invoice-preview {
+            background: white;
+            width: 210mm;
+            min-height: 297mm;
+            box-shadow: 0 0 30px rgba(0,0,0,0.3);
+            transform-origin: top center;
+        }
+
+        /* Optimización para PDF - espaciado compacto */
+        .invoice-content.pdf-mode {
+            padding: 12mm 15mm !important;
+        }
+
+        .invoice-content.pdf-mode header {
+            margin-bottom: 20px !important;
+            padding-bottom: 15px !important;
+        }
+
+        .invoice-content.pdf-mode .info-grid {
+            gap: 25px !important;
+            margin-bottom: 25px !important;
+        }
+
+        .invoice-content.pdf-mode .info-content {
+            font-size: 13px !important;
+            line-height: 1.5 !important;
+        }
+
+        .invoice-content.pdf-mode table {
+            margin-bottom: 25px !important;
+        }
+
+        .invoice-content.pdf-mode td {
+            padding: 10px 12px !important;
+            font-size: 14px !important;
+        }
+
+        .invoice-content.pdf-mode th {
+            padding: 10px !important;
+        }
+
+        .invoice-content.pdf-mode .payment-methods {
+            margin-top: 30px !important;
+            padding: 15px !important;
+            font-size: 12px !important;
+        }
+
+        .invoice-content.pdf-mode .payment-methods ul {
+            margin: 10px 0 0 0 !important;
+        }
+
+        .invoice-content.pdf-mode .secretaria-firma {
+            margin-top: 50px !important;
+        }
+
+        .invoice-content.pdf-mode footer {
+            margin-top: 60px !important;
+            padding-top: 15px !important;
+            font-size: 9px !important;
+            line-height: 1.3 !important;
+        }
+
+        .invoice-content.pdf-mode .logo-placeholder {
+            width: 70px !important;
+            height: 70px !important;
+        }
+
+        .invoice-content.pdf-mode .institution-name {
+            font-size: 22px !important;
+        }
+
+        .invoice-content.pdf-mode .invoice-title h1 {
+            font-size: 28px !important;
+        }
+
+        /* Estilos de la Factura (del diseño original) */
+        .invoice-content {
+            padding: 20mm;
+            border-top: 10px solid #002147;
+        }
+
+        .invoice-content header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #002147;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .logo-container {
+            width: 250px;
+        }
+
+        .logo-placeholder {
+            width: 80px;
+            height: 80px;
+            border: 1px dashed #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        .logo-placeholder img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .institution-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #002147;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0;
+            font-family: 'Times New Roman', Times, serif;
+        }
+
+        .invoice-title {
+            text-align: right;
+        }
+
+        .invoice-title h1 {
+            color: #002147;
+            font-size: 32px;
+            margin: 0;
+            text-transform: uppercase;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .invoice-number {
+            font-size: 18px;
+            color: #c5a059;
+            font-weight: bold;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+            font-family: 'Times New Roman', Times, serif;
+            color: #333333;
+        }
+
+        .info-box h3 {
+            font-family: 'Arial', sans-serif;
+            font-size: 14px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #c5a059;
+            padding-bottom: 5px;
+            color: #002147;
+        }
+
+        .info-content {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 40px;
+            font-family: 'Times New Roman', Times, serif;
+        }
+
+        th {
+            background-color: #002147;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            text-transform: uppercase;
+            font-size: 12px;
+            font-family: 'Arial', sans-serif;
+        }
+
+        td {
+            padding: 15px 12px;
+            border-bottom: 1px solid #ddd;
+            font-size: 15px;
+            color: #333333;
+        }
+
+        .text-right { text-align: right; }
+
+        .totals-container {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .totals-table {
+            width: 300px;
+        }
+
+        .totals-table tr td {
+            padding: 10px;
+            border-bottom: none;
+        }
+
+        .grand-total {
+            background-color: #f9f9f9;
+            font-weight: bold;
+            font-size: 18px;
+            color: #002147;
+            border-top: 2px solid #002147 !important;
+            border-bottom: 2px solid #002147 !important;
+        }
+
+        .payment-methods {
+            margin-top: 50px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            font-size: 13px;
+            font-family: 'Times New Roman', Times, serif;
+            color: #333333;
+        }
+
+        .payment-methods h4 {
+            margin-top: 0;
+            color: #002147;
+            text-transform: uppercase;
+        }
+
+        .secretaria-firma {
+            margin-top: 60px;
+            text-align: center;
+            margin-left: auto;
+            margin-right: auto;
+            width: 200px;
+            font-family: 'Times New Roman', Times, serif;
+        }
+
+        .linea-firma {
+            border-top: 1px solid #333;
+            margin-bottom: 5px;
+        }
+
+        footer {
+            margin-top: 80px;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+            line-height: 1.4;
+            font-family: 'Times New Roman', Times, serif;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .app-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .control-panel {
+                border-right: none;
+                border-bottom: 1px solid #2a2a3e;
+            }
+
+            #invoice-preview {
+                transform: scale(0.7);
+            }
+        }
+
+        /* Loading spinner */
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #0f1419;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .btn-primary.loading .spinner {
+            display: inline-block;
+        }
+
+        .btn-primary.loading .btn-text {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Panel de Control -->
+        <div class="control-panel">
+            <div class="app-header">
+                <h1>⚡ Invoice Pro</h1>
+                <p>Sistema de Generación de Facturas Académicas</p>
+            </div>
+
+            <form id="invoiceForm">
+                <div class="form-group">
+                    <label>Número de Factura</label>
+                    <input type="text" id="invoiceNumber" value="SV-2026-0001" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Fecha de Emisión</label>
+                    <input type="date" id="invoiceDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Nombre del Estudiante</label>
+                    <input type="text" id="studentName" placeholder="Ej: María García López" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Cédula / T.I.</label>
+                    <input type="text" id="studentId" placeholder="Ej: 1234567890" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Teléfono</label>
+                    <input type="tel" id="studentPhone" placeholder="Ej: 300 123 4567" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Ciudad</label>
+                    <input type="text" id="studentCity" placeholder="Ej: Cali" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Concepto del Pago</label>
+                    <textarea id="paymentConcept" placeholder="Ej: Mensualidad Académica - Ciclo Acelerado de Bachillerato">Mensualidad Académica - Ciclo Acelerado de Bachillerato</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Valor Total (COP)</label>
+                    <input type="number" id="totalAmount" value="80000" min="0" step="1000" required>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="applyScholarship">
+                        <label for="applyScholarship">Aplicar Beca de Matrícula (+$50.000 al subtotal)</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Mes de Pago</label>
+                    <input type="text" id="paymentMonth" placeholder="Ej: Febrero 2026" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Nequi / Daviplata</label>
+                    <input type="text" id="nequiNumber" value="314 5127324" placeholder="Número de teléfono">
+                </div>
+
+                <div class="form-group">
+                    <label>Bancolombia (Tipo de Cuenta)</label>
+                    <input type="text" id="bancolombiaAccount" value="[Número de Cuenta Aquí]" placeholder="Ej: Ahorros 12345678">
+                </div>
+
+                <div class="form-group">
+                    <label>Logo de la Institución</label>
+                    <div class="file-upload-wrapper">
+                        <label class="file-upload-btn">
+                            📁 Cargar Logo
+                            <input type="file" id="logoUpload" accept="image/*">
+                        </label>
+                        <div class="logo-preview" id="logoPreview"></div>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button type="button" class="btn btn-primary" id="generatePdfBtn">
+                        <span class="btn-text">📄 Generar PDF</span>
+                        <div class="spinner"></div>
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="updatePreviewBtn">
+                        🔄 Actualizar Vista Previa
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Panel de Preview -->
+        <div class="preview-panel">
+            <div id="invoice-preview">
+                <div class="invoice-content">
+                    <header>
+                        <div class="logo-container">
+                            <div class="logo-placeholder" id="logoDisplay">LOGO AQUÍ</div>
+                            <h2 class="institution-name">Saber Virtual</h2>
+                            <p style="font-size: 11px; margin: 0;">Conecta con el conocimiento</p>
+                        </div>
+                        <div class="invoice-title">
+                            <h1>FACTURA</h1>
+                            <div class="invoice-number" id="displayInvoiceNumber">N° SV-2026-0001</div>
+                            <p style="margin-top: 10px;"><strong>Fecha:</strong> <span id="displayDate">16 de Febrero, 2026</span></p>
+                        </div>
+                    </header>
+
+                    <div class="info-grid">
+                        <div class="info-box">
+                            <h3>EMISOR</h3>
+                            <div class="info-content">
+                                <strong>SABER VIRTUAL</strong> (Acompañamiento Margarita Hurtado)<br>
+                                NIT: 900277502-1<br>
+                                Sede Administrativa: Cra. 38 N° 2- 69<br>
+                                Barrio 14 de Julio, Cali - Colombia<br>
+                                Teléfono: 314 5127324 / 316 7477635
+                            </div>
+                        </div>
+                        <div class="info-box">
+                            <h3>CLIENTE / ESTUDIANTE</h3>
+                            <div class="info-content">
+                                <strong>NOMBRE:</strong> <span id="displayStudentName">_________________________________</span><br>
+                                <strong>C.C./T.I.:</strong> <span id="displayStudentId">_________________________________</span><br>
+                                <strong>TELÉFONO:</strong> <span id="displayStudentPhone">_________________________________</span><br>
+                                <strong>CIUDAD:</strong> <span id="displayStudentCity">_________________________________</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Descripción de los Servicios Académicos</th>
+                                <th class="text-right">Cantidad</th>
+                                <th class="text-right">Valor Unitario</th>
+                                <th class="text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="servicesTable">
+                            <tr>
+                                <td id="serviceDescription">Mensualidad Académica - Ciclo Acelerado de Bachillerato</td>
+                                <td class="text-right">1</td>
+                                <td class="text-right" id="serviceAmount">$ 80.000</td>
+                                <td class="text-right" id="serviceTotal">$ 80.000</td>
+                            </tr>
+                            <tr>
+                                <td>Derecho a Grado y Certificación (Proyectado)</td>
+                                <td class="text-right">1</td>
+                                <td class="text-right">$ 0</td>
+                                <td class="text-right">$ 0</td>
+                            </tr>
+                            <tr id="scholarshipRow" style="display: none;">
+                                <td>Matrícula e Inscripción (Beca del 100%)</td>
+                                <td class="text-right">1</td>
+                                <td class="text-right" style="text-decoration: line-through; color: #999;">$ 50.000</td>
+                                <td class="text-right">$ 0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="totals-container">
+                        <table class="totals-table">
+                            <tr>
+                                <td>Subtotal:</td>
+                                <td class="text-right" id="displaySubtotal">$ 80.000</td>
+                            </tr>
+                            <tr id="discountRow" style="display: none;">
+                                <td>Descuentos (Becas):</td>
+                                <td class="text-right">-$ 50.000</td>
+                            </tr>
+                            <tr class="grand-total">
+                                <td>TOTAL A PAGAR:</td>
+                                <td class="text-right" id="displayGrandTotal">$ 80.000 COP</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div class="payment-methods">
+                        <h4>Instrucciones de Pago</h4>
+                        <p>Por favor, realice su transferencia a los canales autorizados:</p>
+                        <ul>
+                            <li><strong>Nequi / Daviplata:</strong> <span id="displayNequi">314 5127324</span></li>
+                            <li><strong>Bancolombia (Ahorros):</strong> <span id="displayBancolombia">[Número de Cuenta Aquí]</span></li>
+                            <li><strong>Referencia:</strong> <span id="displayReference">Indicar Nombre del Estudiante y Mes de Pago</span></li>
+                        </ul>
+                    </div>
+
+                    <div class="secretaria-firma">
+                        <div class="linea-firma"></div>
+                        <p style="margin: 0; font-weight: bold;">EUNICE CASTILLO</p>
+                        <p style="margin: 0; font-size: 12px; color: #666;">Secretaria General</p>
+                    </div>
+
+                    <footer>
+                        <p>
+                            SABER VIRTUAL en acompañamiento con MARGARITA HURTADO | NIT: 900277502-1 | CAMARA DE COMERCIO N° 034546-2<br>
+                            DANE N° 376109011002 | RECONOCIMIENTO OFICIAL 2420 DE DICIEMBRE 10 DEL 2.002 | RESOLUCIÓN 0839 ENERO 8 DEL 2.010<br>
+                            REGULADO BAJO EL DECRETO 299 DEL 2009 DEL MINISTERIO DE EDUCACIÓN NACIONAL.<br>
+                            Cali, Valle del Cauca, Colombia.
+                        </p>
+                    </footer>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuración inicial
+        const form = document.getElementById('invoiceForm');
+        const updateBtn = document.getElementById('updatePreviewBtn');
+        const generatePdfBtn = document.getElementById('generatePdfBtn');
+        const logoUpload = document.getElementById('logoUpload');
+        let uploadedLogo = null;
+
+        // Establecer fecha actual
+        document.getElementById('invoiceDate').valueAsDate = new Date();
+
+        // Función para formatear moneda colombiana
+        function formatCOP(amount) {
+            return new Intl.NumberFormat('es-CO', {
+                style: 'currency',
+                currency: 'COP',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount).replace('COP', '').trim();
+        }
+
+        // Función para formatear fecha en español
+        function formatDate(dateString) {
+            const date = new Date(dateString + 'T00:00:00');
+            const months = [
+                'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+            ];
+            return `${date.getDate()} de ${months[date.getMonth()]}, ${date.getFullYear()}`;
+        }
+
+        // Manejar carga de logo
+        logoUpload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    uploadedLogo = event.target.result;
+                    
+                    // Mostrar preview en el panel de control
+                    const preview = document.getElementById('logoPreview');
+                    preview.innerHTML = `<img src="${uploadedLogo}" alt="Logo Preview">`;
+                    
+                    // Actualizar logo en la factura
+                    updateInvoicePreview();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Función para actualizar la vista previa
+        function updateInvoicePreview() {
+            const formData = {
+                invoiceNumber: document.getElementById('invoiceNumber').value,
+                date: document.getElementById('invoiceDate').value,
+                studentName: document.getElementById('studentName').value,
+                studentId: document.getElementById('studentId').value,
+                studentPhone: document.getElementById('studentPhone').value,
+                studentCity: document.getElementById('studentCity').value,
+                paymentConcept: document.getElementById('paymentConcept').value,
+                totalAmount: parseFloat(document.getElementById('totalAmount').value) || 0,
+                applyScholarship: document.getElementById('applyScholarship').checked,
+                paymentMonth: document.getElementById('paymentMonth').value,
+                nequiNumber: document.getElementById('nequiNumber').value,
+                bancolombiaAccount: document.getElementById('bancolombiaAccount').value
+            };
+
+            // Actualizar número de factura
+            document.getElementById('displayInvoiceNumber').textContent = `N° ${formData.invoiceNumber}`;
+
+            // Actualizar fecha
+            document.getElementById('displayDate').textContent = formatDate(formData.date);
+
+            // Actualizar datos del estudiante
+            document.getElementById('displayStudentName').textContent = formData.studentName || '_________________________________';
+            document.getElementById('displayStudentId').textContent = formData.studentId || '_________________________________';
+            document.getElementById('displayStudentPhone').textContent = formData.studentPhone || '_________________________________';
+            document.getElementById('displayStudentCity').textContent = formData.studentCity || '_________________________________';
+
+            // Actualizar concepto y monto
+            document.getElementById('serviceDescription').textContent = formData.paymentConcept;
+            document.getElementById('serviceAmount').textContent = `$ ${formatCOP(formData.totalAmount)}`;
+            document.getElementById('serviceTotal').textContent = `$ ${formatCOP(formData.totalAmount)}`;
+
+            // NUEVA LÓGICA MATEMÁTICA:
+            // Si hay beca: subtotal = mensualidad + 50000, total = mensualidad
+            // Si no hay beca: subtotal = mensualidad, total = mensualidad
+            
+            let mensualidad = formData.totalAmount;
+            let subtotal = mensualidad;
+            let becaMatricula = 0;
+            let grandTotal = mensualidad;
+
+            // Mostrar/ocultar fila de beca
+            const scholarshipRow = document.getElementById('scholarshipRow');
+            const discountRow = document.getElementById('discountRow');
+            
+            if (formData.applyScholarship) {
+                becaMatricula = 50000;
+                subtotal = mensualidad + becaMatricula; // Subtotal incluye la matrícula
+                grandTotal = mensualidad; // Total a pagar solo la mensualidad
+                
+                scholarshipRow.style.display = 'table-row';
+                discountRow.style.display = 'table-row';
+            } else {
+                scholarshipRow.style.display = 'none';
+                discountRow.style.display = 'none';
+            }
+
+            // Actualizar totales
+            document.getElementById('displaySubtotal').textContent = `$ ${formatCOP(subtotal)}`;
+            document.getElementById('displayGrandTotal').textContent = `$ ${formatCOP(grandTotal)} COP`;
+
+            // Actualizar instrucciones de pago
+            document.getElementById('displayNequi').textContent = formData.nequiNumber || '314 5127324';
+            document.getElementById('displayBancolombia').textContent = formData.bancolombiaAccount || '[Número de Cuenta Aquí]';
+            
+            // Auto-completar referencia con nombre y mes
+            const referenceName = formData.studentName || '[Nombre del Estudiante]';
+            const referenceMonth = formData.paymentMonth || '[Mes de Pago]';
+            document.getElementById('displayReference').textContent = `${referenceName} - ${referenceMonth}`;
+
+            // Actualizar logo
+            const logoDisplay = document.getElementById('logoDisplay');
+            if (uploadedLogo) {
+                logoDisplay.innerHTML = `<img src="${uploadedLogo}" alt="Logo Saber Virtual">`;
+            } else {
+                logoDisplay.innerHTML = 'LOGO AQUÍ';
+            }
+        }
+
+        // Evento de actualización manual
+        updateBtn.addEventListener('click', updateInvoicePreview);
+
+        // Actualización automática al cambiar campos
+        const formInputs = form.querySelectorAll('input, textarea, select');
+        formInputs.forEach(input => {
+            input.addEventListener('input', updateInvoicePreview);
+            input.addEventListener('change', updateInvoicePreview);
+        });
+
+        // Generar PDF
+        generatePdfBtn.addEventListener('click', async function() {
+            // Actualizar preview antes de generar
+            updateInvoicePreview();
+
+            // Mostrar estado de carga
+            generatePdfBtn.classList.add('loading');
+            generatePdfBtn.disabled = true;
+
+            try {
+                const element = document.getElementById('invoice-preview');
+                const invoiceContent = element.querySelector('.invoice-content');
+                
+                // Aplicar modo compacto para PDF
+                invoiceContent.classList.add('pdf-mode');
+                
+                const opt = {
+                    margin: [10, 10, 10, 10], // [top, left, bottom, right] en mm
+                    filename: `Factura_${document.getElementById('invoiceNumber').value}_${document.getElementById('studentName').value || 'SaberVirtual'}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { 
+                        scale: 2,
+                        useCORS: true,
+                        logging: false,
+                        letterRendering: true
+                    },
+                    jsPDF: { 
+                        unit: 'mm', 
+                        format: 'legal', // Tamaño Legal (215.9 x 355.6 mm) - más largo que A4
+                        orientation: 'portrait',
+                        compress: true
+                    },
+                    pagebreak: { mode: 'avoid-all' }
+                };
+
+                await html2pdf().set(opt).from(element).save();
+                
+                // Remover modo compacto después de generar
+                invoiceContent.classList.remove('pdf-mode');
+                
+            } catch (error) {
+                console.error('Error generando PDF:', error);
+                alert('Hubo un error al generar el PDF. Por favor, intenta nuevamente.');
+                // Asegurar que se remueva el modo compacto en caso de error
+                const invoiceContent = document.querySelector('.invoice-content');
+                if (invoiceContent) {
+                    invoiceContent.classList.remove('pdf-mode');
+                }
+            } finally {
+                // Remover estado de carga
+                generatePdfBtn.classList.remove('loading');
+                generatePdfBtn.disabled = false;
+            }
+        });
+
+        // Inicializar vista previa
+        updateInvoicePreview();
+    </script>
+</body>
+</html>
