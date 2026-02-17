@@ -730,11 +730,10 @@
         // Función para formatear moneda colombiana
         function formatCOP(amount) {
             return new Intl.NumberFormat('es-CO', {
-                style: 'currency',
-                currency: 'COP',
+                style: 'decimal',
                 minimumFractionDigits: 0,
                 maximumFractionDigits: 0
-            }).format(amount).replace('COP', '').trim();
+            }).format(amount);
         }
 
         // Función para formatear fecha en español
